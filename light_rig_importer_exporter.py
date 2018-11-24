@@ -80,7 +80,9 @@ def light_rig_importer():
                 
                 if light_node:
                     light_node.parm('power3').set(light['intensity'])
-                
+                		light_node.parmTuple('rotation')[0].set(light['rotation'][0])
+                		light_node.parmTuple('rotation')[1].set(light['rotation'][1])
+                		
                     if light['use_texture']:
                         light_node.parm('A_FILENAME').set(light['texture'])
                 else:
