@@ -4,10 +4,33 @@
 
 import hou, json
 
+def set_transform(light):
+    hmatrix = hou.Matrix4()
+    hmatrix.setAt(0, 0, light['matrix'][0]) 
+    hmatrix.setAt(0, 1, light['matrix'][1])
+    hmatrix.setAt(0, 2, light['matrix'][2])
+    hmatrix.setAt(0, 3, light['matrix'][3])
+    hmatrix.setAt(1, 0, light['matrix'][4])
+    hmatrix.setAt(1, 1, light['matrix'][5])
+    hmatrix.setAt(1, 2, light['matrix'][6])
+    hmatrix.setAt(1, 3, light['matrix'][7])
+    hmatrix.setAt(2, 0, light['matrix'][8])
+    hmatrix.setAt(2, 1, light['matrix'][9])
+    hmatrix.setAt(2, 2, light['matrix'][10])
+    hmatrix.setAt(2, 3, light['matrix'][11])
+    hmatrix.setAt(3, 0, light['matrix'][12])
+    hmatrix.setAt(3, 1, light['matrix'][13])
+    hmatrix.setAt(3, 2, light['matrix'][14])
+    hmatrix.setAt(3, 3, light['matrix'][15])
+    
+    return hmatrix
+    
 def light_rig_importer():
     fileName = hou.parm('file_dir_path').eval()
 
-    import_node = hou.node("/obj").createNode("subnet", "light_rig")
+    rigName = fileName.rsplit('.', 1)
+    rigName = rigName[0].split('/')[-1]
+    import_node = hou.node("/obj").createNode("subnet", rigName + "_light_rig")
     
     f = open(fileName, 'r')
     
@@ -24,25 +47,7 @@ def light_rig_importer():
             light_node.parm('ar_spread').set(light['spread'])
             light_node.parm('ar_soft_edge').set(light['soft_edge'])
             
-            hmatrix = hou.Matrix4()
-            hmatrix.setAt(0, 0, light['matrix'][0]) 
-            hmatrix.setAt(0, 1, light['matrix'][1])
-            hmatrix.setAt(0, 2, light['matrix'][2])
-            hmatrix.setAt(0, 3, light['matrix'][3])
-            hmatrix.setAt(1, 0, light['matrix'][4])
-            hmatrix.setAt(1, 1, light['matrix'][5])
-            hmatrix.setAt(1, 2, light['matrix'][6])
-            hmatrix.setAt(1, 3, light['matrix'][7])
-            hmatrix.setAt(2, 0, light['matrix'][8])
-            hmatrix.setAt(2, 1, light['matrix'][9])
-            hmatrix.setAt(2, 2, light['matrix'][10])
-            hmatrix.setAt(2, 3, light['matrix'][11])
-            hmatrix.setAt(3, 0, light['matrix'][12])
-            hmatrix.setAt(3, 1, light['matrix'][13])
-            hmatrix.setAt(3, 2, light['matrix'][14])
-            hmatrix.setAt(3, 3, light['matrix'][15])
-            
-            light_node.setWorldTransform(hmatrix)
+            light_node.setWorldTransform(set_transform(light))
                 
             if light['type'] == 'point':
                 light_prefix = "ar_point_"
@@ -57,6 +62,44 @@ def light_rig_importer():
                 light_prefix = "ar_disk_"            
             elif light['type'] == 'cylinder':
                 light_prefix = "ar_cylinder_"
+            elif light['type'] == 'skydome':
+                light_node.parm('ar_light_type').set(6)
+                
+                if light['use_texture']:
+                    light_node.parm('ar_light_color_type').set('1')
+                    light_node.parm('ar_format').set(light['format'])
+                    light_node.parm('ar_light_color_texture').set(light['texture'])
+                    #light_node.parm('').set(light[''])
+                    
+        elif(hou.parm('renderer').eval() == 1): # Redshift            
+            light_node.setWorldTransform(set_transform(light))
+            
+        elif(hou.parm('renderer').eval() == 2): # Octane
+            if light['type'] == 'skydome': # in houdini the environment is in shading
+                light_node = hou.node('/shop/octane_rendertarget_dl1')
+                
+                if light_node:
+                    light_node.parm('power3').set(light['intensity'])
+                
+                    if light['use_texture']:
+                        light_node.parm('A_FILENAME').set(light['texture'])
+                else:
+                    print 'No Octane target shader...'
+                    
+            else: # normal lights
+                light_node = import_node.createNode("octane_light", lname)
+                light_node.setWorldTransform(set_transform(light))
+                
+                if light['type'] == 'quad':
+                    
+                    
+                    if light['use_texture']:
+                        light_node.parm('switch').set(1)
+                        light_node.parm('emission_text_switcher_switch').set(1)
+                        light_node.parm('NT_TEX_IMAGE1_A_FILENAME').set(light['texture'])             
+                        light_node.parm('NT_EMIS_TEXTURE1_power').set(light['intensity'])
+                    else:
+                        light_node.parm('NT_EMIS_BLACKBODY1_power').set(light['intensity'])
             
     import_node.layoutChildren()
     
@@ -70,18 +113,19 @@ def light_rig_exporter():
     
     f = open(filePath + '.json', 'w')
     
-    objs = hou.parm('lights_export').eval()
+    objs = hou.parm('lights_export').eval().split(' ')
     
     data = {}
-    
+    print objs
     for objPath in objs:
         obj = hou.node(objPath)
         
         value = {}
         guiType = 0
         value['use_texture'] = 0
-
-        value['matrix'] = obj.worldTransform().asTuple()
+        
+        #print obj.Geometry().intrinsicNames()
+        value['matrix'] = obj.worldTransform().asTuple()        
         
         if obj.type().name() == 'arnold_light': # dealing with Arnold                
             if obj.parm('ar_light_type').eval() == 0:
@@ -153,7 +197,7 @@ def light_rig_exporter():
                 value['intensity'] = obj[C4DAIP_SKYDOME_LIGHT_INTENSITY] * 2 ** obj[C4DAIP_SKYDOME_LIGHT_EXPOSURE] 
                 value['normalize'] = obj[C4DAIP_SKYDOME_LIGHT_NORMALIZE]                   
 
-            data[obj.GetName()] = value
+            data[obj.name()] = value
             
         if obj.type().name() == 'rslight': # dealing with Redshift
             if obj.parm('light_type').eval() == 0:
@@ -190,17 +234,17 @@ def light_rig_exporter():
                         value['use_texture'] = 1
                         value['texture'] = obj.parm('TextureSampler1_tex0').eval()
                     else:    
-                        value['color'] = (obj.parmTuple('light_color')[0], obj.parmTuple('light_color')[1], obj.parmTuple('light_color')[2])
+                        value['color'] = (obj.parmTuple('light_color')[0].eval(), obj.parmTuple('light_color')[1].eval(), obj.parmTuple('light_color')[2].eval())
                     
-                    value['intensity'] = obj.parm('RSL_intensityMultiplier') 
-                    value['normalize'] = obj.parm('RSL_normalize')
-                    value['width'] = obj.parmTuple('areasize')[0]
-                    value['height'] = obj.parmTuple('areasize')[1]
+                    value['intensity'] = obj.parm('RSL_intensityMultiplier').eval() 
+                    value['normalize'] = obj.parm('RSL_normalize').eval()
+                    value['width'] = obj.parmTuple('areasize')[0].eval()
+                    value['height'] = obj.parmTuple('areasize')[1].eval()
                     value['roundness'] = 0
                     value['soft_edge'] = 0
                     value['spread'] = 1      
             
-            data[obj.GetName()] = value
+            data[obj.name()] = value
         
     json.dump(data, f, indent=2)
     
