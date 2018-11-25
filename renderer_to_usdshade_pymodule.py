@@ -1,7 +1,7 @@
 # normally used in the Scripts section of a digital asset as a PythonModule
 # this script takes the filename of the hi version and associated
-# mantra materials, and write USD PBR(USDPreviewSurface) information, you want to
-# have first exported the Hi version
+# external renderer materials, and writes USD PBR(USDPreviewSurface) information 
+# you want to have first exported the Hi version first
 
 import os, sys, ctypes, string, getopt, glob, json
 from pxr import Usd, UsdGeom, UsdShade, Sdf, Gf, UsdUtils
@@ -18,7 +18,7 @@ from htoa.node.parms import *
 def set_usd_filename():
     rawFile = hou.parm('hi_abc_file').eval()
     filename = rawFile.rsplit('.', 3)[0]
-    hou.node('./usdrop1').parm('usdfile').set(filename+'.usd')
+    hou.node('./usdrop1').parm('usdfile').set(filename+'.usda')
     
 # should create a new material with passed in properties
 def newMaterial(stage, path, dclr, roughness, metallic, eclr=(0,0,0), opacity=1.0, ior=1.5, clearcoat=0.0, clearroug=0.0):
@@ -54,17 +54,17 @@ def newMaterialViaShop(shopshader, stage, path):
     clearroug = shopshader.parm('coat_roughness').eval()
     
     pbrShader = UsdShade.Shader.Define(stage, path + '/PBRShader')
-    pbrShader.CreateIdAttr("UsdPreviewSurface")
-    pbrShader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).Set(dclr)
-    pbrShader.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(roughness)
-    pbrShader.CreateInput("metallic", Sdf.ValueTypeNames.Float).Set(metallic)
-    pbrShader.CreateInput("emissiveColor", Sdf.ValueTypeNames.Color3f).Set(eclr)
-    pbrShader.CreateInput("opacity", Sdf.ValueTypeNames.Float).Set(opacity)
-    pbrShader.CreateInput("ior", Sdf.ValueTypeNames.Float).Set(ior)
-    pbrShader.CreateInput("clearcoat", Sdf.ValueTypeNames.Float).Set(clearcoat)
-    pbrShader.CreateInput("clearcoatRoughness", Sdf.ValueTypeNames.Float).Set(clearroug)
+    pbrShader.CreateIdAttr('UsdPreviewSurface')
+    pbrShader.CreateInput('diffuseColor', Sdf.ValueTypeNames.Color3f).Set(dclr)
+    pbrShader.CreateInput('roughness', Sdf.ValueTypeNames.Float).Set(roughness)
+    pbrShader.CreateInput('metallic', Sdf.ValueTypeNames.Float).Set(metallic)
+    pbrShader.CreateInput('emissiveColor', Sdf.ValueTypeNames.Color3f).Set(eclr)
+    pbrShader.CreateInput('opacity', Sdf.ValueTypeNames.Float).Set(opacity)
+    pbrShader.CreateInput('ior', Sdf.ValueTypeNames.Float).Set(ior)
+    pbrShader.CreateInput('clearcoat', Sdf.ValueTypeNames.Float).Set(clearcoat)
+    pbrShader.CreateInput('clearcoatRoughness', Sdf.ValueTypeNames.Float).Set(clearroug)
 
-    material.CreateSurfaceOutput().ConnectToSource(pbrShader, "surface")
+    material.CreateSurfaceOutput().ConnectToSource(pbrShader, 'surface')
 
     return
 def editMaterial(stage, matpath, dclr, roughness, metallic):
@@ -114,7 +114,7 @@ def write_preview_shading():
         
         # now we follow the material links building up shaders, if we've already built
         # the shader then we bind the existing one
-        stage = Usd.Stage.Open(filename + '.usd')
+        stage = Usd.Stage.Open(filename + '.usda')
         for gpath in geoPaths:
             matName = gpath[1].rsplit('/')[-1]
             if matName is not '':
@@ -139,7 +139,8 @@ def write_preview_shading():
         #editMaterial(stage, '/Materials/white_veneer')        
 
     # CreateNewARKitUsdzPackage works with relative pathing, so we need to change our directory path to
-    # the exported saded usd path to sucessfully pull this together
-    stage.Export(filename + '.usd')
+    # the exported shaded usd path to sucessfully pull this together
+    stage.Export(filename + '.usda')
     os.chdir(dirPath)
-    UsdUtils.CreateNewARKitUsdzPackage(fileNoPath+'.usd', fileNoPath + '.usdz') 
+    UsdUtils.CreateNewARKitUsdzPackage(fileNoPath+'.usda', fileNoPath + '.usdz') 
+        
