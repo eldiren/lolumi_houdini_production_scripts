@@ -76,25 +76,23 @@ def light_rig_importer():
             
         elif(hou.parm('renderer').eval() == 2): # Octane
             if light['type'] == 'skydome': # in houdini the environment is in shading
-                light_node = hou.node('/shop/octane_rendertarget_dl1')
+                lightShop = import_node.createNode('shopnet', 'sky')
+                light_node = lightShop.createNode('octane_rendertarget_dl', 'octane_rendertarget_dl')
                 
-                if light_node:
-                    light_node.parm('power3').set(light['intensity'])
+                if light_node:     
                     light_node.parmTuple('rotation')[0].set(light['rotation'][0])
                     light_node.parmTuple('rotation')[1].set(light['rotation'][1])
                     
                     if light['use_texture']:
+                        light_node.parm('parmEnvironment').set(1)
+                        light_node.parm('power3').set(light['intensity'])
                         light_node.parm('A_FILENAME').set(light['texture'])
-                else:
-                    print 'No Octane target shader...'
                     
             else: # normal lights
                 light_node = import_node.createNode("octane_light", lname)
                 light_node.setWorldTransform(set_transform(light))
                 
                 if light['type'] == 'quad':
-                    
-                    
                     if light['use_texture']:
                         light_node.parm('switch').set(1)
                         light_node.parm('emission_text_switcher_switch').set(1)
