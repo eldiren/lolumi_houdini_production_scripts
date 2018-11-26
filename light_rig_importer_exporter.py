@@ -91,6 +91,8 @@ def light_rig_importer():
             else: # normal lights
                 light_node = import_node.createNode("octane_light", lname)
                 light_node.setWorldTransform(set_transform(light))
+                light_node.parm('octane_objprop_cameraVis').set(0)
+                light_node.parm('NT_EMIS_BLACKBODY1_normalize').set(light['normalize'])
                 
                 if light['type'] == 'quad':
                     if light['use_texture']:
