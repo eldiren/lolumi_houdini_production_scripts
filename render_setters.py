@@ -17,6 +17,7 @@ def setOctaneSettings(node):
         node.parmTuple('HO_overrideRes')[1].set(this.parmTuple('res_override')[1].eval())
         node.parm('HO_overrideCameraRes').set(1)
         node.parm('HO_objects_force').set(this.path() + ' ' + this.parm('alights').eval())
+        node.parm('HO_img_fileName').set(this.parm('render_file').eval())
     
     return True
     
@@ -28,10 +29,12 @@ def octaneIPR():
         
 def octaneRender():
     octROP = hou.node('/obj/ropnet1/Octane_ROP')
-    success = setOctaneSettings(node)
+    success = setOctaneSettings(octROP)
     if success:
         octROP.parm('HO_overrideCameraRes').set(0)
-        octROP.parm('execute').pressButton() 
+        octROP.parm('HO_img_enable').set(1)
+        
+        octROP.parm('execute').pressButton()
         
 def mantraMPlay():
     this = hou.node('.')
