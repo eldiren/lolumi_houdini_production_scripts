@@ -14,11 +14,17 @@ from htoa.universe import HaUniverse
 from htoa.node.node import pullHouParms, houdiniParmGet, arnoldParmSet
 from htoa.node.parms import *
     
-# extracts a usd filename from the hda renderpath
+# extracts a usd/gltf filename from the hda renderpath
 def set_usd_filename():
-    rawFile = hou.parm('hi_abc_file').eval()
+    this = hou.node('.')
+    rObj = hou.node(this.parm('obj').eval())
+    
+    rawFile = rObj.parm('hi_abc_file').eval()
     filename = rawFile.rsplit('.', 3)[0]
+    hou.node('./abc_ar_export').parm('filename').set(rObj.parm('ar_abc_file').eval())
+    hou.node('./abc_hi_export').parm('filename').set(rawFile)
     hou.node('./usdrop1').parm('usdfile').set(filename+'.usda')
+    hou.node('./rop_gltf1').parm('file').set(filename+'.glb')
     
 # should create a new material with passed in properties
 def newMaterial(stage, path, dclr, roughness, metallic, eclr=(0,0,0), opacity=1.0, ior=1.5, clearcoat=0.0, clearroug=0.0, occlusion=0.0):
@@ -43,13 +49,15 @@ def newMaterial(stage, path, dclr, roughness, metallic, eclr=(0,0,0), opacity=1.
 def newMaterialViaShop(shopshader, stage, path):
     diffSet = False
     material = UsdShade.Material.Define(stage, path)
-    
+    uvInput = material.CreateInput('frame:stPrimvarName', Sdf.ValueTypeNames.Token)
+    uvInput.Set('st')
+
     pbrShader = UsdShade.Shader.Define(stage, path + '/PBRShader')
     pbrShader.CreateIdAttr('UsdPreviewSurface')
     
     uvReader = UsdShade.Shader.Define(stage, path + '/uvReader')
     uvReader.CreateIdAttr('UsdPrimvarReader_float2')
-    uvReader.CreateInput('varname',Sdf.ValueTypeNames.Token).Set('uv')
+    uvReader.CreateInput('varname', Sdf.ValueTypeNames.Token).ConnectToSource(uvInput)
     uvReader.CreateOutput('result', Sdf.ValueTypeNames.Float2)
 
     inputs = shopshader.inputConnections()
@@ -118,9 +126,10 @@ def bindMaterial(stage, geopath, matpath):
 def write_preview_shading():
     geoPaths = []
     this = hou.node('.')
+    rObj = hou.node(this.parm('obj').eval())
     pxrMatPaths = []
 
-    rawFile = this.parm("hi_abc_file").eval()
+    rawFile = rObj.parm("hi_abc_file").eval()
     
     if(rawFile != None):
         filename = rawFile.rsplit('.', 3)[0]
@@ -163,4 +172,3 @@ def write_preview_shading():
     stage.Export(filename + '.usda')
     os.chdir(dirPath)
     UsdUtils.CreateNewARKitUsdzPackage(fileNoPath+'.usda', fileNoPath + '.usdz')
-        
