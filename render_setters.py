@@ -8,6 +8,7 @@
 
 def setRenderSettings(node):
     this = hou.node('.')
+    rObj = hou.node(this.parm('obj').eval())
     renderer = this.parm('renderer').eval()
 
     if node:
@@ -15,33 +16,34 @@ def setRenderSettings(node):
             if(this.parm('bake_texture').eval()):
                 bakeROP = hou.node('/obj/ropnet1/baketexture1')
                 bakeROP.parm('camera').set(this.parm('render_cam').eval())
-                bakeROP.parmTuple('vm_uvunwrapres')[0].set(this.parmTuple('res_override')[0].eval())
-                bakeROP.parmTuple('vm_uvunwrapres')[1].set(this.parmTuple('res_override')[1].eval())
+                bakeROP.parmTuple('vm_uvunwrapres')[0].set(rObj.parmTuple('res_override')[0].eval())
+                bakeROP.parmTuple('vm_uvunwrapres')[1].set(rObj.parmTuple('res_override')[1].eval())
                 bakeROP.parm('vm_uvobject1').set(this.path())
                 bakeROP.parm('vobject').set(this.path())
-                bakeROP.parm('alights').set(this.parm('alights').eval())
-                bakeROP.parm('vm_uvoutputpicture1').set(this.parm('render_file').eval())
+                bakeROP.parm('alights').set(rObj.parm('alights').eval())
+                bakeROP.parm('vm_uvoutputpicture1').set(rObj.parm('render_file').eval())
             else:
                 mantraROP = hou.node('/obj/ropnet1/mantra1')
-                mantraROP.parm('camera').set(this.parm('render_cam').eval())
+                mantraROP.parm('camera').set(rObj.parm('render_cam').eval())
                 mantraROP.parm('override_camerares').set(1)
                 mantraROP.parm('res_fraction').set('specific')
-                mantraROP.parmTuple('res_override')[0].set(this.parmTuple('res_override')[0].eval())
-                mantraROP.parmTuple('res_override')[1].set(this.parmTuple('res_override')[1].eval())
+                mantraROP.parmTuple('res_override')[0].set(rObj.parmTuple('res_override')[0].eval())
+                mantraROP.parmTuple('res_override')[1].set(rObj.parmTuple('res_override')[1].eval())
                 mantraROP.parm('vobject').set(this.path())
-                mantraROP.parm('alights').set(this.parm('alights').eval())
+                mantraROP.parm('alights').set(rObj.parm('alights').eval())
         elif renderer == 1: # octane
-            if(this.parm('bake_texture').eval()):
-                node.parm('HO_renderTarget').set(this.parm('oct_bake_path').eval())
+            if(rObj.parm('bake_texture').eval()):
+                node.parm('HO_renderTarget').set(rObj.parm('oct_bake_path').eval())
             else:
-                node.parm('HO_renderTarget').set(this.parm('oct_target_path').eval())
+                node.parm('HO_renderTarget').set(rObj.parm('oct_target_path').eval())
             
-            node.parm('HO_renderCamera').set(this.parm('render_cam').eval())
-            node.parm('HO_iprCamera').set(this.parm('render_cam').eval())
-            node.parmTuple('HO_overrideRes')[0].set(this.parmTuple('res_override')[0].eval())
-            node.parmTuple('HO_overrideRes')[1].set(this.parmTuple('res_override')[1].eval())
+            node.parm('HO_img_fileName').set(rObj.parm('render_file').eval())
+            node.parm('HO_renderCamera').set(rObj.parm('render_cam').eval())
+            node.parm('HO_iprCamera').set(rObj.parm('render_cam').eval())
+            node.parmTuple('HO_overrideRes')[0].set(rObj.parmTuple('res_override')[0].eval())
+            node.parmTuple('HO_overrideRes')[1].set(rObj.parmTuple('res_override')[1].eval())
             node.parm('HO_overrideCameraRes').set(1)
-            node.parm('HO_objects_force').set(this.path() + ' ' + this.parm('alights').eval())
+            node.parm('HO_objects_force').set(this.path() + ' ' + rObj.parm('alights').eval())
         elif renderer == 2: # arnold
             pass
         elif renderer == 3: # redshift
@@ -66,9 +68,10 @@ def octaneToDisk():
 
 def mantraToDisk():
     this = hou.node('.')
+    rObj = hou.node(this.parm('obj').eval())
     
     mantraROP = None
-    if(this.parm('bake_texture').eval()):
+    if(rObj.parm('bake_texture').eval()):
         mantraROP = hou.node('/obj/ropnet1/baketexture1')
     else:
         mantraROP = hou.node('/obj/ropnet1/mantra1')
@@ -81,9 +84,10 @@ def mantraToDisk():
         
 def mantraMPlay():
     this = hou.node('.')
+    rObj = hou.node(this.parm('obj').eval())
     
     ROPNode = None
-    if(this.parm('bake_texture').eval()):
+    if(rObj.parm('bake_texture').eval()):
         ROPNode = hou.node('/obj/ropnet1/baketexture1')
     else:
         ROPNode = hou.node('/obj/ropnet1/mantra1')
@@ -96,9 +100,10 @@ def mantraMPlay():
 
 def mantraIPR():
     this = hou.node('.')
+    rObj = hou.node(this.parm('obj').eval())
     
     ROPNode = None
-    if(this.parm('bake_texture').eval()):
+    if(rObj.parm('bake_texture').eval()):
         ROPNode = hou.node('/obj/ropnet1/baketexture1')
     else:
         ROPNode = hou.node('/obj/ropnet1/mantra1')
