@@ -1,7 +1,9 @@
 # normally used in the Scripts section of a digital asset as a PythonModule
-# this script takes the filename of the hi version and associated
-# external renderer materials, and writes USD PBR(USDPreviewSurface) information 
-# you want to have first exported the Hi version first
+# this script takes a directory path, a filename, and associated external
+# renderer materials, and writes USD PBR(USDPreviewSurface) information 
+# write_preview_shading() is implemented in such a way that it works nicely
+# in a usd rop post script, you likely use set_usd_filename() as a callback 
+# on a HDA button
 
 import os, sys, ctypes, string, getopt, glob, json
 from pxr import Usd, UsdGeom, UsdShade, Sdf, Gf, UsdUtils
@@ -14,17 +16,17 @@ from htoa.universe import HaUniverse
 from htoa.node.node import pullHouParms, houdiniParmGet, arnoldParmSet
 from htoa.node.parms import *
     
-# extracts a usd/gltf filename from the hda renderpath
+# creates rop filenames dynamically from an HDA dirpath and filename field
 def set_usd_filename():
     this = hou.node('.')
     rObj = hou.node(this.parm('obj').eval())
     
-    rawFile = rObj.parm('hi_abc_file').eval()
-    filename = rawFile.rsplit('.', 3)[0]
-    hou.node('./abc_ar_export').parm('filename').set(rObj.parm('ar_abc_file').eval())
-    hou.node('./abc_hi_export').parm('filename').set(rawFile)
-    hou.node('./usdrop1').parm('usdfile').set(filename+'.usda')
-    hou.node('./rop_gltf1').parm('file').set(filename+'.glb')
+    rawDir = rObj.parm('model_dir').eval()
+    rawFile = rObj.parm('model_file').eval()
+    
+    hou.node('./abc_export').parm('filename').set(rawDir+'alembic/'+rawFile+'.abc')
+    hou.node('./usdrop1').parm('usdfile').set(rawDir+'usd/'+rawFile+'.usda')
+    hou.node('./rop_gltf1').parm('file').set(rawDir+'gltf/'+rawFile+'.glb')
     
 # should create a new material with passed in properties
 def newMaterial(stage, path, dclr, roughness, metallic, eclr=(0,0,0), opacity=1.0, ior=1.5, clearcoat=0.0, clearroug=0.0, occlusion=0.0):
@@ -123,18 +125,19 @@ def bindMaterial(stage, geopath, matpath):
     material = UsdShade.Material.Get(stage, matpath)
     UsdShade.MaterialBindingAPI(geo).Bind(material)
 
+# As a post script after a USD ROP this will write shading information to the usda and
+# then delete it leaving you with a clean usdz
 def write_preview_shading():
     geoPaths = []
-    this = hou.node('.')
+    this = hou.node('../')
     rObj = hou.node(this.parm('obj').eval())
     pxrMatPaths = []
 
-    rawFile = rObj.parm("hi_abc_file").eval()
-    
+    rawDir = rObj.parm('model_dir').eval()
+    rawFile = rObj.parm('model_file').eval()
+        
     if(rawFile != None):
-        filename = rawFile.rsplit('.', 3)[0]
-        fileNoPath = filename.split('/')[-1]
-        dirPath = rawFile.rsplit('/', 1)[0]
+        filename = rawDir +'usd/' + rawFile
         # we get all the unique paths as these are the prim paths in our USD file
         # if we find a unique path we also try to grab the shopmaterialpath, we'll
         # create and bind materials from these
@@ -170,5 +173,6 @@ def write_preview_shading():
     # CreateNewARKitUsdzPackage works with relative pathing, so we need to change our directory path to
     # the exported shaded usd path to sucessfully pull this together
     stage.Export(filename + '.usda')
-    os.chdir(dirPath)
-    UsdUtils.CreateNewARKitUsdzPackage(fileNoPath+'.usda', fileNoPath + '.usdz')
+    os.chdir(rawDir + '/usd')
+    UsdUtils.CreateNewARKitUsdzPackage(rawFile + '.usda', rawFile + '.usdz')
+    os.remove(rawFile + '.usda')
