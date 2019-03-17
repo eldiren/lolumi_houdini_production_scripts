@@ -5,12 +5,6 @@
 import os, sys, ctypes, string, getopt, glob
 
 import hou
-from arnold import *
-
-import htoa
-from htoa.universe import HaUniverse
-from htoa.node.node import pullHouParms, houdiniParmGet, arnoldParmSet
-from htoa.node.parms import *
 
 def check_type(type):
     for ntype in hou.ropNodeTypeCategory().nodeTypes().keys():
@@ -18,6 +12,14 @@ def check_type(type):
             return True
             
     return False
+
+if(check_type('arnold')): #check if arnold rop exists
+    from arnold import *
+
+    import htoa
+    from htoa.universe import HaUniverse
+    from htoa.node.node import pullHouParms, houdiniParmGet, arnoldParmSet
+    from htoa.node.parms import *
 
 vcam_node = hou.node('/obj/view_cam')
 if not vcam_node:
