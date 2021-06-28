@@ -11,11 +11,13 @@ def gen():
     out1 = hou.node(node.path()+'/output0')
 
     bodyGrp = node.createNode('groupcreate', 'body')
-    bodyGrp.parm('basegroup').set('@fbx_material_name=Face,Lips,Torso,Legs,Toenails,Fingernails,Arms,Mouth,Teeth,Ears,EyeSocket')
+    bodyGrp.parm('basegroup').set(
+        '@fbx_material_name=Face,Lips,Torso,Legs,Toenails,Fingernails,Arms,Mouth,Teeth,Ears,EyeSocket')
     bodyGrp.setFirstInput(input1)
 
     eyemoistureGrp = node.createNode('groupcreate', 'eyeMoisture')
-    eyemoistureGrp.parm('basegroup').set('@fbx_material_name=EyeMoisture,Cornea')
+    eyemoistureGrp.parm('basegroup').set(
+        '@fbx_material_name=EyeMoisture,Cornea')
     eyemoistureGrp.setFirstInput(bodyGrp)
 
     eyesGrp = node.createNode('groupcreate', 'eyes')
@@ -36,24 +38,45 @@ def gen():
     attribedit.parm('filters').set(len(geo.prims()))
     attribedit.setFirstInput(eyesGrp)
 
-    out1.setFirstInput(attribedit)
+    bodyname = node.createNode('name')
+    bodyname.setFirstInput(attribedit)
+    bodyname.parm('numnames').set(2)
+    bodyname.parm('group1').set('eyeMoisture')
+    bodyname.parm('name1').set('eyeMoisture')
+    bodyname.parm('group2').set('eyes')
+    bodyname.parm('name2').set('eyes')
+
+    grpdel = node.createNode('groupdelete')
+    grpdel.parm('group1').set('*')
+    grpdel.setFirstInput(bodyname)
+
+    switch = node.createNode('switch')
+    switch.parm('input').setExpression('ch("../../split_body")')
+    switch.setFirstInput(attribedit)
+    switch.setNextInput(grpdel)
+
+    out1.setFirstInput(switch)
 
     i = 0
     for prim in geo.prims():
         path = prim.attribValue('name')
         attribedit.parm('from'+str(i)).set(path)
-        
+
         path = path.split('.Shape')[0]
-        attribedit.parm('to'+str(i)).set('\`chs("../../' + path + 'name' + '")\`')
+        path = path.replace(' ', '_')
+        parmName = 'daz_' + path + 'name'
+        attribedit.parm('to'+str(i)).set('\`chs("../../' + parmName + '")\`')
 
         # create parms for changing main object names
-        hou_parm_template = hou.StringParmTemplate(path+'name', path+' New Name', 1, default_value=([path]), naming_scheme=hou.parmNamingScheme.Base1, string_type=hou.stringParmType.Regular, menu_items=([]), menu_labels=([]), icon_names=([]), item_generator_script="", item_generator_script_language=hou.scriptLanguage.Python, menu_type=hou.menuType.Normal)
+        hou_parm_template = hou.StringParmTemplate(parmName, path+' New Name', 1, default_value=([path]), naming_scheme=hou.parmNamingScheme.Base1, string_type=hou.stringParmType.Regular, menu_items=(
+            []), menu_labels=([]), icon_names=([]), item_generator_script="", item_generator_script_language=hou.scriptLanguage.Python, menu_type=hou.menuType.Normal)
         pnode.addSpareParmTuple(hou_parm_template)
-        
+
         i += 1
-        
+
     pack.destroy()
     node.layoutChildren()
+
 
 def clear():
     node = hou.node('..')
@@ -82,6 +105,18 @@ def clear():
     if(attribedit):
         attribedit.destroy()
 
+    bodyname = hou.node(hou.pwd().path()+'/../subnet1/name1')
+    if(bodyname):
+        bodyname.destroy()
+
+    grpdel = hou.node(hou.pwd().path()+'/../subnet1/groupdelete1')
+    if(grpdel):
+        grpdel.destroy()
+
+    switch = hou.node(hou.pwd().path()+'/../subnet1/switch1')
+    if(switch):
+        switch.destroy()
+
     # pack geo to loop through names faster
     pack = subnet.createNode('pack')
     pack.parm('createpath').set(0)
@@ -95,14 +130,15 @@ def clear():
     for prim in geo.prims():
         path = prim.attribValue('name')
         path = path.split('.Shape')[0]
-        
+        path = path.replace(' ', '_')
+
         # create parms for changing main object names
         n = ptg.find(path+'name')
         if n:
             ptg.remove(n)
-        
+
         i += 1
-        
+
     pack.destroy()
     node.layoutChildren()
 
