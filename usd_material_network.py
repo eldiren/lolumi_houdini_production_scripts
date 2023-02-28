@@ -1,5 +1,5 @@
-# Place this as a python script in a shelf tool and if your in a Material Library this
-# Will create a Collect node with all the currently support hydra delegate shaders
+# Place this as a python script in a shelf tool and if you're in a Material Library this
+# Will create a Collect node with all the currently supported hydra delegate shaders
 # attached, ready for shading
 
 def check_type(type): 
@@ -14,7 +14,7 @@ qpath = hou.ui.curDesktop().paneTabOfType(hou.paneTabType.NetworkEditor).pwd().p
 cat = str( hou.node(qpath).childTypeCategory() )
 category = cat.split(' ')[-1].replace('>', '')
 
-print category
+print(category)
 if category == 'Vop':
     con = hou.node(qpath)
     collect = con.createNode('collect', 'newmat')

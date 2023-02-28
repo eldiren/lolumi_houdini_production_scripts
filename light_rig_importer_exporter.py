@@ -36,7 +36,7 @@ def light_rig_importer():
     
     data = json.load(f)  
     for lname in data:
-        print lname
+        print(lname)
         light = data[lname]
 
         if(hou.parm('renderer').eval() == 0): # Arnold
@@ -118,7 +118,7 @@ def light_rig_exporter():
     objs = hou.parm('lights_export').eval().split(' ')
     
     data = {}
-    print objs
+    print(objs)
     for objPath in objs:
         obj = hou.node(objPath)
         
